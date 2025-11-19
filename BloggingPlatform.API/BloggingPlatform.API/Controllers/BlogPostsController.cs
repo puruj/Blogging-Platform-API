@@ -1,7 +1,9 @@
+using System.Threading.Tasks;
 using BloggingPlatform.API.Data;
 using BloggingPlatform.API.Models;
 using BloggingPlatform.API.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BloggingPlatform.API.Controllers
 {
@@ -18,17 +20,17 @@ namespace BloggingPlatform.API.Controllers
 
         // Returns all posts (add paging when the dataset grows).
         [HttpGet]
-        public IActionResult GetBlogPosts()
+        public async Task<IActionResult> GetBlogPosts()
         {
-            var blogPosts = dbContext.BlogPosts.ToList();
+            var blogPosts = await dbContext.BlogPosts.ToListAsync();
             return Ok(blogPosts);
         }
 
         // Retrieves a single post by id.
         [HttpGet("{id:guid}")]
-        public IActionResult GetBlogPost(Guid id)
+        public async Task<IActionResult> GetBlogPost(Guid id)
         {
-            var blogPost = dbContext.BlogPosts.Find(id);
+            var blogPost = await dbContext.BlogPosts.FindAsync(id);
             if (blogPost == null)
             {
                 return NotFound();
@@ -39,7 +41,7 @@ namespace BloggingPlatform.API.Controllers
 
         // Free-text search across title/content/category/tags.
         [HttpGet("search")]
-        public IActionResult SearchBlogPosts([FromQuery] string term)
+        public async Task<IActionResult> SearchBlogPosts([FromQuery] string term)
         {
             if (string.IsNullOrWhiteSpace(term))
             {
@@ -48,20 +50,20 @@ namespace BloggingPlatform.API.Controllers
 
             var lowered = term.ToLowerInvariant();
 
-            var results = dbContext.BlogPosts
+            var results = await dbContext.BlogPosts
                 .Where(p =>
                     p.Title.ToLower().Contains(lowered) ||
                     p.Content.ToLower().Contains(lowered) ||
                     p.Category.ToLower().Contains(lowered) ||
                     (p.Tags != null && p.Tags.Any(tag => tag.ToLower().Contains(lowered))))
-                .ToList();
+                .ToListAsync();
 
             return Ok(results);
         }
 
         // Creates a new post.
         [HttpPost]
-        public IActionResult CreateBlogPost(CreateBlogPostDto createBlogPostDto)
+        public async Task<IActionResult> CreateBlogPost(CreateBlogPostDto createBlogPostDto)
         {
             var blogPostEntity = new BlogPost
             {
@@ -71,17 +73,17 @@ namespace BloggingPlatform.API.Controllers
                 Tags = createBlogPostDto.Tags
             };
 
-            dbContext.Add(blogPostEntity);
-            dbContext.SaveChanges();
+            await dbContext.BlogPosts.AddAsync(blogPostEntity);
+            await dbContext.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetBlogPost), new { id = blogPostEntity.Id }, blogPostEntity);
         }
 
         // Full update of an existing post.
         [HttpPut("{id:guid}")]
-        public IActionResult UpdateBlogPost(Guid id, CreateBlogPostDto updateDto)
+        public async Task<IActionResult> UpdateBlogPost(Guid id, CreateBlogPostDto updateDto)
         {
-            var blogPost = dbContext.BlogPosts.Find(id);
+            var blogPost = await dbContext.BlogPosts.FindAsync(id);
             if (blogPost == null)
             {
                 return NotFound();
@@ -92,23 +94,23 @@ namespace BloggingPlatform.API.Controllers
             blogPost.Category = updateDto.Category;
             blogPost.Tags = updateDto.Tags;
 
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return Ok(blogPost);
         }
 
         // Deletes a post.
         [HttpDelete("{id:guid}")]
-        public IActionResult DeleteBlogPost(Guid id)
+        public async Task<IActionResult> DeleteBlogPost(Guid id)
         {
-            var blogPost = dbContext.BlogPosts.Find(id);
+            var blogPost = await dbContext.BlogPosts.FindAsync(id);
             if (blogPost == null)
             {
                 return NotFound();
             }
 
             dbContext.BlogPosts.Remove(blogPost);
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return NoContent();
         }
