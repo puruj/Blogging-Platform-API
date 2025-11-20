@@ -50,13 +50,16 @@ namespace BloggingPlatform.API.Controllers
 
             var lowered = term.ToLowerInvariant();
 
-            var results = await dbContext.BlogPosts
+            var posts = await dbContext.BlogPosts.ToListAsync();
+
+            var results = posts
                 .Where(p =>
-                    p.Title.ToLower().Contains(lowered) ||
-                    p.Content.ToLower().Contains(lowered) ||
-                    p.Category.ToLower().Contains(lowered) ||
-                    (p.Tags != null && p.Tags.Any(tag => tag.ToLower().Contains(lowered))))
-                .ToListAsync();
+                    p.Title.Contains(lowered, StringComparison.OrdinalIgnoreCase) ||
+                    p.Content.Contains(lowered, StringComparison.OrdinalIgnoreCase) ||
+                    p.Category.Contains(lowered, StringComparison.OrdinalIgnoreCase) ||
+                    (p.Tags != null && p.Tags.Any(tag =>
+                        tag.Contains(lowered, StringComparison.OrdinalIgnoreCase))))
+                .ToList();
 
             return Ok(results);
         }
